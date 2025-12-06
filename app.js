@@ -5,49 +5,45 @@ const movieRoutes = require('./routes/movies');
 const authRoutes = require('./routes/auth');
 const methodOverride = require('method-override');
 const path = require('path');
-const serverless = require('serverless-http');
+
 const app = express();
 
-// this is the EJS template
+// EJS template engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// the middleware
+// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 app.use(methodOverride('_method'));
 
-// session setup
+// Session setup
 app.use(session({
-    secret: 'mySecretKey',
+    secret: process.env.SESSION_SECRET || 'defaultsecret',
     resave: false,
     saveUninitialized: false
 }));
 
-// make user available in all views
+// Share user with all views
 app.use((req, res, next) => {
     res.locals.currentUser = req.session.user;
     next();
 });
 
-// have the routes below with one another
+// Routes
 app.use('/movies', movieRoutes);
 app.use('/', authRoutes);
 
-// home route
+// Home route
 app.get('/', (req, res) => {
-  res.render('home', { title: 'Welcome' });
+    res.render('home', { title: 'Welcome' });
 });
 
-// added my own mongodb for the sake of simplicity; feel free to change it. user/pass are in the link
-//mongoose.connect('mongodb+srv://dbUser:Password123@cluster0.t4bu3fl.mongodb.net/?appName=Cluster0')
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URL)
-.then(() => {
-  console.log('Connected to MongoDB');
-})
-.catch(err => {
-  console.error('MongoDB connection error:', err);
-});
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => console.error('MongoDB connection error:', err));
 
-module.exports = serverless(app);
+// Export Express app (NOT serverless)
+module.exports = app;
